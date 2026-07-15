@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading...</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            /* background-color: #0a0a0a;  <-- Removed to prevent blocking images */
+            color: #ff7300;
+        }
+
+        #bg-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0; /* Brought up from -3 */
+            overflow: hidden;
+            background: #000;
+        }
+
+        .bg-slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0;
+            transform: scale(1);
+            transition: opacity 1.5s ease-in-out;
+            z-index: 1; /* Inside container */
+        }
+
+        .bg-slide.active {
+            opacity: 1;
+            animation: kenburns 20s linear infinite alternate;
+        }
+
+        @keyframes kenburns {
+            0% { transform: scale(1) translate(0, 0); }
+            100% { transform: scale(1.15) translate(-2%, -1%); }
+        }
+
+        #grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 200%;
+            height: 200%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 64px 64px;
+            z-index: 2; /* Above images */
+            animation: grid-move 20s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes grid-move {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-64px, -64px); }
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 10, 0.4);
+            z-index: 3; /* Above grid */
+        }
+
+        .content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            text-align: center;
+            z-index: 10; /* Top most */
+        }
+
+        h1 {
+            font-size: 3.5em;
+            margin-bottom: 0;
+            color: #ff7300;
+            text-shadow: 0 0 10px rgba(255, 115, 0, 0.5);
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 2px;
+            /* Ensure height is reserved so layout doesn't jump */
+            min-height: 1.2em;
+            line-height: 1.2em;
+        }
+
+        h2 {
+            font-size: 1.2em;
+            margin-top: 5px;
+            margin-bottom: 20px;
+            color: #ff7300;
+            opacity: 0.8;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .status-box {
+            background: rgba(0, 0, 0, 0.85);
+            padding: 20px;
+            border: 2px solid #ff7300;
+            box-shadow: 0 0 20px rgba(255, 115, 0, 0.2);
+            position: relative;
+            text-align: center;
+        }
+
+        /* Decorative corner squares */
+        .status-box::before, .status-box::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #ff7300;
+            transition: all 0.3s ease;
+        }
+        .status-box::before { top: -2px; left: -2px; }
+        .status-box::after { bottom: -2px; right: -2px; }
+
+        #status-text {
+            font-size: 1.4em;
+            margin-bottom: 5px;
+            color: #ff7300;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        #file-text {
+            font-size: 0.9em;
+            color: #ffb366;
+            margin-bottom: 15px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-family: 'Courier New', monospace;
+        }
+
+        .scanner-container {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 115, 0, 0.2);
+            position: relative;
+            overflow: hidden;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 115, 0, 0.3);
+        }
+
+        .scanner-bar {
+            width: 40%;
+            height: 100%;
+            background: #ff7300;
+            position: absolute;
+            left: -40%;
+            animation: scan 2s infinite ease-in-out;
+            box-shadow: 0 0 15px #ff7300;
+        }
+
+        @keyframes scan {
+            0% { left: -40%; }
+            50% { left: 100%; }
+            100% { left: -40%; }
+        }
+        
+        /* Stats are now just for text info, centered */
+        .stats {
+            display: flex;
+            justify-content: center;
+            font-size: 0.9em;
+            color: #ff7300;
+            font-weight: 700;
+            margin-top: 10px;
+        }
+
+        #tips-container {
+            margin-top: 20px;
+            font-size: 1em;
+            color: #ff7300;
+            text-transform: uppercase;
+            font-weight: bold;
+            min-height: 1.2em;
+            text-shadow: 0 0 5px rgba(255, 115, 0, 0.3);
+            opacity: 0.8;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        /* Scrolling code background effect */
+        .code-line {
+            position: absolute;
+            white-space: nowrap;
+            color: rgba(255, 115, 0, 0.2);
+            font-size: 14px;
+            z-index: -1;
+            animation: slideCode linear infinite;
+        }
+
+        @keyframes slideCode {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(100vw); }
+        }
+
+        .fade-out {
+            opacity: 0;
+            transition: opacity 1.5s ease-out;
+            pointer-events: none;
+        }
+
+        /* Hide default GMod loader elements if present */
+        .loading-image, 
+        .loading-bar, 
+        #status, 
+        #progress, 
+        #servername, 
+        #client, 
+        #map, 
+        .loadingpanel, 
+        .loading, 
+        .loadingbox { 
+            display: none !important; 
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="bg-container"></div> 
+    <div id="grid-overlay"></div>
+    <div id="overlay"></div>
+
+    <div class="content">
+        <h1 id="title-text"></h1>
+        <h2>Please wait while we prepare your session</h2>
+
+        <div class="status-box">
+            <div id="status-text">Connecting to server...</div>
+            <div id="file-text"></div>
+            
+            <!-- Indeterminate Scanner Bar -->
+            <div class="scanner-container">
+                <div class="scanner-bar"></div>
+            </div>
+            
+            <!-- Removed Percentage, keeping a simple count or status message if needed -->
+            <div class="stats">
+                <span id="files-count"></span>
+            </div>
+        </div>
+        
+        <div id="tips-container"></div>
+    </div>
+
+    <script>
+        // Configuration
+        const backgroundImages = [
+            "imag1.png",
+            "imag2.png",
+            "imag3.png"
+        ];
+        const slideDuration = 6000; // ms per slide
+        const fadeDuration = 1500; // ms for fade transition
+
+        const tips = [
+            "Read the rules!",
+            "Make sure to type bind g fake in the console.",
+            "You may bleed out, patch yourself up quickly.",
+            "Attacking players give adrenaline, use this to your advantage.",
+            "Your shins are not your enemy, dont jump from high places.",
+            "Do not randomly kill players, you may get banned.",
+            "Make sure to verify that the person infront of you is your teammate.",
+            "Dont attack or tackle people, you may lose your innocence.",
+            "Losing your innocence will result in you becoming a target and they wont have any karma writeoff.",
+            "Be discreet, You are always vulnerable.",
+            "Join the discord.",
+            "Make sure to create an appearance in game so you are recognized.",
+            "Hold E and press RMB to loot props.",
+            "Weaponize your surroundings, You can grab various props as weaponry.",
+            "Death is usually the easy way out, let it go.",
+            "Red circle means that you are dying, white circle means you are unconscious."
+
+
+        ];
+        const tipDuration = 5000; // ms per tip
+
+        // Preload and Debug Images
+        backgroundImages.forEach(src => {
+            const img = new Image();
+            img.onerror = () => {
+                const err = document.createElement('div');
+                err.style.color = '#ff4444';
+                err.style.position = 'fixed';
+                err.style.top = '10px';
+                err.style.left = '10px';
+                err.style.zIndex = '10000';
+                err.style.background = 'rgba(0,0,0,0.8)';
+                err.style.padding = '5px';
+                err.style.fontFamily = 'monospace';
+                err.innerText = "IMG ERROR: " + src;
+                document.body.appendChild(err);
+            };
+            img.src = src;
+        });
+
+        // Background Slideshow Logic
+        const bgContainer = document.getElementById('bg-container');
+        let currentSlide = 0;
+
+        function initSlideshow() {
+            if (backgroundImages.length === 0) return;
+
+            // Preload images and create divs
+            backgroundImages.forEach((src, index) => {
+                const div = document.createElement('div');
+                div.className = 'bg-slide';
+                div.style.backgroundImage = `url('${src}')`;
+                if (index === 0) div.classList.add('active');
+                bgContainer.appendChild(div);
+            });
+
+            if (backgroundImages.length > 1) {
+                setInterval(nextSlide, slideDuration);
+            }
+        }
+
+        function nextSlide() {
+            const slides = document.querySelectorAll('.bg-slide');
+            slides[currentSlide].classList.remove('active');
+            
+            currentSlide = (currentSlide + 1) % slides.length;
+            
+            slides[currentSlide].classList.add('active');
+        }
+
+        initSlideshow();
+
+        // --- TIPS LOGIC ---
+        const tipsContainer = document.getElementById('tips-container');
+
+        function updateTip() {
+            if (tips.length === 0) return;
+            
+            // Fade out
+            tipsContainer.style.opacity = 0;
+            
+            setTimeout(() => {
+                // Pick a random tip
+                let randomIndex = Math.floor(Math.random() * tips.length);
+                tipsContainer.innerText = "TIP: " + tips[randomIndex];
+                
+                // Fade in
+                tipsContainer.style.opacity = 0.8;
+            }, 500); // Wait for fade out to finish (0.5s matches transition)
+        }
+
+        if (tips.length > 0) {
+            updateTip(); // Show first immediately
+            setInterval(updateTip, tipDuration);
+        }
+
+        // --- BACKGROUND CODE EFFECT ---
+        const codeSnippets = [
+            "hg = hg or {}",
+            "hg.Apperance = hg.Apperance or {}",
+            "util.AddNetworkString('GetAppearance')",
+            "ply:SetModel(ap.Model)",
+            "ply:SetNWString('PlayerName', ap.Name)",
+            "RenderAccessories(ent, ent:GetNetVar('Accessories'))",
+            "hook.Add('PlayerSpawn','RequestAppearanceOnSpawn',function(p) end)",
+            "surface.CreateFont('MC_TypewriterLarge',{font='Courier New',size=42})",
+            "surface.SetDrawColor(255,115,0)",
+            "loading_resources...",
+            "authenticating_user...",
+            "establishing_connection..."
+        ];
+
+        function createCodeLines() {
+            const container = document.body;
+            const lineCount = 15;
+            
+            for (let i = 0; i < lineCount; i++) {
+                const div = document.createElement('div');
+                div.className = 'code-line';
+                div.innerText = codeSnippets[Math.floor(Math.random() * codeSnippets.length)];
+                
+                // Randomize vertical position
+                div.style.top = Math.random() * 100 + "%";
+                
+                // Randomize speed and direction
+                const duration = 10 + Math.random() * 20; // 10-30s
+                div.style.animationDuration = duration + "s";
+                
+                // Randomize starting delay
+                div.style.animationDelay = "-" + (Math.random() * 20) + "s";
+
+                // Random font size opacity
+                div.style.opacity = 0.1 + Math.random() * 0.3;
+                div.style.fontSize = (12 + Math.random() * 8) + "px";
+                
+                container.insertBefore(div, document.getElementById('overlay'));
+            }
+        }
+        
+        createCodeLines();
+        // ------------------------------
+
+
+        // Typewriter Effect
+        const titleText = document.getElementById('title-text');
+        const titles = ["Slop Zcity"];
+        let titleIndex = 0;
+        let charIndex = 0;
+        let isDeleting = false;
+        let isWaiting = false;
+
+        function typeWriter() {
+            const currentTitle = titles[titleIndex];
+            
+            // Color change logic
+            titleText.style.color = "#ff7300";
+            titleText.style.textShadow = "0 0 10px rgba(255, 115, 0, 0.5)";
+            
+            // If waiting, do nothing but check time (handled by timeout)
+            if (isWaiting) return;
+
+            if (isDeleting) {
+                // Deleting logic
+                titleText.innerText = currentTitle.substring(0, charIndex - 1);
+                charIndex--;
+                
+                // When fully deleted
+                if (charIndex === 0) {
+                    isDeleting = false;
+                    titleIndex = (titleIndex + 1) % titles.length;
+                    // Ensure the header keeps its height by setting a non-breaking space if empty
+                    titleText.innerHTML = "&nbsp;";
+                }
+            } else {
+                // Typing logic with binary glitch effect
+                // ... (rest of logic)
+                
+                // If we are just starting or empty, ensure we use text not html
+                if (charIndex === 0) titleText.innerText = "";
+                
+                let displayText = currentTitle.substring(0, charIndex);
+                let nextChar = currentTitle.charAt(charIndex);
+                
+                // 50% chance to show binary 0/1 before real char
+                if (Math.random() > 0.5) {
+                    titleText.innerText = displayText + (Math.random() > 0.5 ? "0" : "1");
+                } else {
+                    titleText.innerText = displayText + nextChar;
+                }
+                
+                // Sometimes advance, sometimes just glitch
+                if (Math.random() > 0.3) {
+                     titleText.innerText = displayText + nextChar;
+                     charIndex++;
+                }
+
+                if (charIndex === currentTitle.length) {
+                    isWaiting = true;
+                    setTimeout(() => {
+                        isWaiting = false;
+                        isDeleting = true;
+                    }, 2000); // Wait 2s before deleting
+                }
+            }
+        }
+        
+        setInterval(typeWriter, 100);
+
+        // GMod Loading Screen API implementation
+        
+        const statusText = document.getElementById('status-text');
+        const fileText = document.getElementById('file-text');
+        const filesCount = document.getElementById('files-count');
+        const statusBox = document.querySelector('.status-box');
+
+        let totalFiles = 0;
+        let neededFiles = 0;
+        let baseStatus = "Connecting to server"; // Current status without dots
+        
+        // --- DOT ANIMATION LOGIC ---
+        let dotCount = 0;
+        setInterval(() => {
+            dotCount = (dotCount + 1) % 4; // Cycles 0, 1, 2, 3
+            let dots = "";
+            for(let i=0; i<dotCount; i++) dots += ".";
+            
+            // Only update if we are not fading out
+            if (!statusBox.classList.contains('fade-out')) {
+                statusText.innerText = baseStatus + dots;
+            }
+        }, 500);
+
+        // Called when a file starts downloading
+        function DownloadingFile(fileName) {
+            fileText.innerText = "Downloading " + fileName;
+            
+            // We just update the status text, no progress bar math needed anymore
+            filesCount.innerText = "DOWNLOADING ASSETS...";
+        }
+
+        // Called when the status changes (e.g., "Sending client info...")
+        function SetStatus(status) {
+            // Remove existing dots if GMod sends them, so we can control animation
+            baseStatus = status.replace(/\.+$/, ''); 
+            
+            // Clear file text if not downloading
+            if (status.indexOf("Downloading") === -1 && status.indexOf("Workshop") === -1) {
+                fileText.innerText = "";
+                filesCount.innerText = "PROCESSING...";
+            }
+
+            // Check for end states to hide the bar
+            // "Sending client info" usually means we are done downloading and starting Lua
+            if (status.indexOf("Sending client info") !== -1 || status.indexOf("Starting Lua") !== -1) {
+                 statusBox.classList.add('fade-out');
+                 filesCount.innerText = "LAUNCHING...";
+            }
+            
+            if (status.indexOf("Workshop Complete") !== -1) {
+                filesCount.innerText = "WORKSHOP COMPLETE";
+            }
+        }
+
+        // Called to set the total number of files to download
+        function SetFilesTotal(total) {
+            totalFiles = total;
+        }
+
+        // Called to set the number of files needed
+        function SetFilesNeeded(needed) {
+            neededFiles = needed;
+        }
+        
+        // No refreshProgress() needed anymore since we use a scanner bar
+
+    </script>
+</body>
+</html>
